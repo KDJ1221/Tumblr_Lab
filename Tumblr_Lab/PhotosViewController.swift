@@ -6,10 +6,14 @@
 //  Copyright © 2019 Miko James. All rights reserved.
 //
 
+import AlamofireImage
 import UIKit
 
-class PhotosViewController: UIViewController {
+class PhotosViewController: UIViewController, UITableViewDataSource,
+UITableViewDelegate{
     // MARK: - Properties
+    
+    @IBOutlet var tableView: UITableView!
     
     var posts: [[String: Any]] = []
 
@@ -17,6 +21,8 @@ class PhotosViewController: UIViewController {
         super.viewDidLoad()
 
         retreivePosts()
+        tableView.dataSource = self
+        tableView.delegate = self
     }
     
     // MARK: - Private Functions
@@ -30,13 +36,38 @@ class PhotosViewController: UIViewController {
                 print(error.localizedDescription)
             } else if let data = data,
                 let dataDictionary = try! JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                print(dataDictionary)
+               // print(dataDictionary)
                 
-                // TODO: Get the posts and store in posts property
-                
-                // TODO: Reload the table view
+                let responseDictionary = dataDictionary["response"] as! [String: Any]
+                self.posts = responseDictionary["posts"] as! [[String: Any]]
+                self.tableView.reloadData()
             }
         }
         task.resume()
+    }
+    // MARK: - UITableViewDatasource
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return posts.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "PhotoCell", for: indexPath) as! PhotoCell
+        let post = posts[indexPath.row]
+        
+        if let photos = post["photos"] as? [[String : Any]]{
+            let photo = photos[0]
+            
+            let originalSize = photo["original_size"] as! [String: Any]
+            
+            let urlString = originalSize["url"] as! String
+            
+            let url = URL(string: urlString)
+            
+            cell.photoImageView.af_setImage(withURL: url!)
+            
+            self.tableView.reloadData()
+        }
+        return cell
     }
 }
